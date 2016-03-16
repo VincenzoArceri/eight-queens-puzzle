@@ -5,16 +5,16 @@ import com.juliasoft.beedeedee.factories.Factory;
 
 public class Queens {
 
-
-	public final static int N = 11;
+	public final static int N = 12;
 	public static BDD[][] board = new BDD[N][N];
-
 
 	public static void main(String[] args) {
 
-		// Dimensione iniziale della tabella dei nodi e della cache (programmazione dinamica)
+		long startTime = System.currentTimeMillis();
+
 		Factory factory = Factory.mkResizingAndGarbageCollected(1000, 1000);
 
+		// Initialize the board: each cell contains a variable
 		for (int i = 0; i < N; ++i) 
 			for (int j = 0; j < N; ++j) 
 				board[i][j] = factory.makeVar(i * N + j);
@@ -32,6 +32,7 @@ public class Queens {
 
 				// First rule
 				for (int l = 0; l < N && l != j; ++l) {
+
 					// Calcolo il not
 					BDD temp = board[i][l].not();
 
@@ -108,13 +109,13 @@ public class Queens {
 				andChain.free();
 				andChain = factory.makeOne();
 
+
 				BDD temp = firstRule.and(secondRule.and(thirdRule.and(fourthRule)));
 
 				firstRule.free();
 				secondRule.free();
 				thirdRule.free();
 				fourthRule.free();
-
 
 				BDD temp2 = sigletonBDD.copy();
 				sigletonBDD.free();
@@ -135,6 +136,7 @@ public class Queens {
 
 				line = board[i][j].or(temp);
 				temp.free();
+				board[i][j].free();
 			}
 
 			BDD temp = sigletonBDD.copy();
@@ -176,6 +178,13 @@ public class Queens {
 
 		sigletonBDD.free();
 		factory.done();
-	}
 
+		long estimatedTime = System.currentTimeMillis() - startTime;
+
+		int seconds = (int) (estimatedTime / 1000) % 60 ;
+		int minutes = (int) ((estimatedTime / (1000*60)) % 60);
+		int hours   = (int) ((estimatedTime / (1000*60*60)) % 24);
+
+		System.out.println("Time: " + minutes + "m " + seconds + "s");
+	}
 }
