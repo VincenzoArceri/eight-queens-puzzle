@@ -4,48 +4,79 @@ import com.juliasoft.beedeedee.bdd.UnsatException;
 import com.juliasoft.beedeedee.factories.Factory;
 
 public class Queens {
-	
+
 	public static int i, j, k, l;
-	
-	public final static int N = 11;
-	public static BDD[][] board = new BDD[N][N];
+
+	public final static int N = 10;
+	public final static BDD[][] board = new BDD[N][N];
+
+	public static BDD firstRule;
+	public static BDD secondRule;
+	public static BDD thirdRule;
+	public static BDD fourthRule;
+
+	public static BDD temp;
+	public static BDD line;
+	public static BDD orChain;
+	public static BDD andChain;
+
+	public static BDD result;
 
 	public static void main(String[] args) {
 
-		long startTime = System.currentTimeMillis();
+		//long startTime = System.currentTimeMillis();
 
-		Factory factory = Factory.mkResizingAndGarbageCollected(N*N, 100000);
+		Factory factory = Factory.mkResizingAndGarbageCollected(N*N, 10000);
+
+		result = factory.makeOne();
+		orChain = factory.makeZero();
 
 		// Initialize the board: each cell contains a variable
-		for (i = 0; i < N; ++i) 
-			for (j = 0; j < N; ++j) 
+		for (i = 0; i < N; ++i) {
+			for (j = 0; j < N; ++j) {
+
 				board[i][j] = factory.makeVar(i * N + j);
 
-		BDD andChain = factory.makeOne();
+				temp = orChain.copy();
+				orChain.free();
 
-		BDD firstRule;
-		BDD secondRule;
-		BDD thirdRule;
-		BDD fourthRule;
-		BDD sigletonBDD = factory.makeOne();
+				orChain = board[i][j].or(temp);
+				temp.free();
+			}
+
+			temp = result.copy();
+			result = temp.and(orChain);
+
+			orChain = factory.makeZero();
+			temp.free();
+		}
+
+
+		andChain = factory.makeOne();
 
 		for (i = 0; i < N; ++i) {
 			for (j = 0; j < N; ++j) {
 
-				// First rule
+				BDD tempAnd;
+
 				for (l = 0; l < N && l != j; ++l) {
+					/**
+					 * First rule
+					 */
 
 					// Calcolo il not
-					BDD temp = board[i][l].not();
+					temp = board[i][l].not();
 
 					// Calcolo l'and parziale
-					BDD tempAnd = andChain.and(temp);
+					tempAnd = andChain.and(temp);
 
 					andChain.free();
 					andChain = tempAnd.copy();
 
 					tempAnd.free();
 					temp.free();
+
+
 				} // Fine and chain
 
 				firstRule = board[i][j].imp(andChain);
@@ -57,10 +88,10 @@ public class Queens {
 				for (k = 0; k < N && k != i; ++k) {
 
 					// Calcolo il not
-					BDD temp = board[k][j].not();
+					temp = board[k][j].not();
 
 					// Calcolo l'and parziale
-					BDD tempAnd = andChain.and(temp);
+					tempAnd = andChain.and(temp);
 
 					andChain = tempAnd.copy();
 
@@ -76,10 +107,10 @@ public class Queens {
 				for (k = 0; k < N && k != i; ++k) {
 					if ((j + k -i < N) && (j + k - i >= 0)) {
 
-						BDD temp = board[k][j + k - i].not();
+						temp = board[k][j + k - i].not();
 
 						// Calcolo l'and parziale
-						BDD tempAnd = andChain.and(temp);
+						tempAnd = andChain.and(temp);
 
 						andChain = tempAnd.copy();
 						tempAnd.free();
@@ -95,10 +126,10 @@ public class Queens {
 				for (k = 0; k < N && k != i; ++k) {
 					if ((j + i -k < N) && (j + i -k >= 0)) {
 
-						BDD temp = board[k][j + i - k].not();
+						temp = board[k][j + i - k].not();
 
 						// Calcolo l'and parziale
-						BDD tempAnd = andChain.and(temp);
+						tempAnd = andChain.and(temp);
 						andChain.free();
 
 						andChain = tempAnd.copy();
@@ -112,16 +143,11 @@ public class Queens {
 				andChain = factory.makeOne();
 
 
-				BDD temp = firstRule.and(secondRule.and(thirdRule.and(fourthRule)));
+				temp = firstRule.andWith(secondRule.andWith(thirdRule.andWith(fourthRule)));
 
-				firstRule.free();
-				secondRule.free();
-				thirdRule.free();
-				fourthRule.free();
-
-				BDD temp2 = sigletonBDD.copy();
-				sigletonBDD.free();
-				sigletonBDD = temp.and(temp2);
+				BDD temp2 = result.copy();
+				result.free();
+				result = temp.and(temp2);
 
 				temp.free();
 				temp2.free();
@@ -129,46 +155,33 @@ public class Queens {
 			} // j closed
 		} // i closed		
 
-		BDD line = factory.makeZero();
-
-		for (i = 0; i < N; ++i) {
-			for (j = 0; j < N; ++j) {
-				BDD temp = line.copy();
-				line.free();
-
-				line = board[i][j].or(temp);
-				temp.free();
-				board[i][j].free();
-			}
-
-			BDD temp = sigletonBDD.copy();
-			sigletonBDD.free();
-			sigletonBDD = temp.and(line);
-
-			// Clean
-
-			temp.free();
-			line.free();
-			line = factory.makeZero();
-		}
-
-		Assignment a = null;
 		try {
-			System.out.println(sigletonBDD.allSat().size());
-			
+			System.out.println(result.allSat().size());
+
 			// Gets a random assignment
-			a = sigletonBDD.anySat();
-		} catch (UnsatException e) {
+			// printBoard(result.anySat(), result);
+		} catch (UnsatException e) { System.out.println("Unsat"); }
 
-		}
+		result.free();
+		factory.done();
 
-		/*if (a != null) {
+		/*long estimatedTime = System.currentTimeMillis() - startTime;
+
+		int seconds = (int) (estimatedTime / 1000) % 60 ;
+		int minutes = (int) ((estimatedTime / (1000 * 60)) % 60);
+
+		System.out.println("Time: " + minutes + "m " + seconds + "s");*/
+	}
+
+	private static void printBoard(final Assignment asg, final BDD result) {
+
+		if (asg != null) {
 			int c = 0;
 
 			for (int i = 0; i < N*N; ++i) {
 
-				if (sigletonBDD.varProfile()[i] > 0) {
-					if (a.holds(i))
+				if (result.varProfile()[i] > 0) {
+					if (asg.holds(i))
 						System.out.print(" 0 ");
 					else
 						System.out.print(" . ");
@@ -178,16 +191,6 @@ public class Queens {
 						System.out.println("");
 				}
 			}
-		}*/
-
-		sigletonBDD.free();
-		factory.done();
-
-		long estimatedTime = System.currentTimeMillis() - startTime;
-
-		int seconds = (int) (estimatedTime / 1000) % 60 ;
-		int minutes = (int) ((estimatedTime / (1000 * 60)) % 60);
-
-		System.out.println("Time: " + minutes + "m " + seconds + "s");
+		}
 	}
 }
