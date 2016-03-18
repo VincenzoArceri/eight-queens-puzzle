@@ -4,19 +4,21 @@ import com.juliasoft.beedeedee.bdd.UnsatException;
 import com.juliasoft.beedeedee.factories.Factory;
 
 public class Queens {
-
-	public final static int N = 12;
+	
+	public static int i, j, k, l;
+	
+	public final static int N = 11;
 	public static BDD[][] board = new BDD[N][N];
 
 	public static void main(String[] args) {
 
 		long startTime = System.currentTimeMillis();
 
-		Factory factory = Factory.mkResizingAndGarbageCollected(1000, 1000);
+		Factory factory = Factory.mkResizingAndGarbageCollected(N*N, 100000);
 
 		// Initialize the board: each cell contains a variable
-		for (int i = 0; i < N; ++i) 
-			for (int j = 0; j < N; ++j) 
+		for (i = 0; i < N; ++i) 
+			for (j = 0; j < N; ++j) 
 				board[i][j] = factory.makeVar(i * N + j);
 
 		BDD andChain = factory.makeOne();
@@ -27,11 +29,11 @@ public class Queens {
 		BDD fourthRule;
 		BDD sigletonBDD = factory.makeOne();
 
-		for (int i = 0; i < N; ++i) {
-			for (int j = 0; j < N; ++j) {
+		for (i = 0; i < N; ++i) {
+			for (j = 0; j < N; ++j) {
 
 				// First rule
-				for (int l = 0; l < N && l != j; ++l) {
+				for (l = 0; l < N && l != j; ++l) {
 
 					// Calcolo il not
 					BDD temp = board[i][l].not();
@@ -52,7 +54,7 @@ public class Queens {
 				andChain = factory.makeOne();
 
 				// Second rule
-				for (int k = 0; k < N && k != i; ++k) {
+				for (k = 0; k < N && k != i; ++k) {
 
 					// Calcolo il not
 					BDD temp = board[k][j].not();
@@ -71,7 +73,7 @@ public class Queens {
 				andChain = factory.makeOne();
 
 				// Third rule
-				for (int k = 0; k < N && k != i; ++k) {
+				for (k = 0; k < N && k != i; ++k) {
 					if ((j + k -i < N) && (j + k - i >= 0)) {
 
 						BDD temp = board[k][j + k - i].not();
@@ -90,7 +92,7 @@ public class Queens {
 				andChain = factory.makeOne();
 
 				// Forth rule
-				for (int k = 0; k < N && k != i; ++k) {
+				for (k = 0; k < N && k != i; ++k) {
 					if ((j + i -k < N) && (j + i -k >= 0)) {
 
 						BDD temp = board[k][j + i - k].not();
@@ -129,8 +131,8 @@ public class Queens {
 
 		BDD line = factory.makeZero();
 
-		for (int i = 0; i < N; ++i) {
-			for (int j = 0; j < N; ++j) {
+		for (i = 0; i < N; ++i) {
+			for (j = 0; j < N; ++j) {
 				BDD temp = line.copy();
 				line.free();
 
@@ -153,12 +155,14 @@ public class Queens {
 		Assignment a = null;
 		try {
 			System.out.println(sigletonBDD.allSat().size());
+			
+			// Gets a random assignment
 			a = sigletonBDD.anySat();
 		} catch (UnsatException e) {
 
 		}
 
-		if (a != null) {
+		/*if (a != null) {
 			int c = 0;
 
 			for (int i = 0; i < N*N; ++i) {
@@ -174,7 +178,7 @@ public class Queens {
 						System.out.println("");
 				}
 			}
-		}
+		}*/
 
 		sigletonBDD.free();
 		factory.done();
@@ -182,8 +186,7 @@ public class Queens {
 		long estimatedTime = System.currentTimeMillis() - startTime;
 
 		int seconds = (int) (estimatedTime / 1000) % 60 ;
-		int minutes = (int) ((estimatedTime / (1000*60)) % 60);
-		int hours   = (int) ((estimatedTime / (1000*60*60)) % 24);
+		int minutes = (int) ((estimatedTime / (1000 * 60)) % 60);
 
 		System.out.println("Time: " + minutes + "m " + seconds + "s");
 	}
